@@ -15,18 +15,29 @@ pip3 install pdfminer.six
 class NKUST_Calendar:
     def __init__(self, file, term_year):
         self.res = {}
-        self.week_startDays = None
+        self.week_start_days = None
         data = None
         try:
-            data = self.raw_Calendar_decode(file=file)
+            data = self.raw_calendar_decode(file=file)
         except Exception as e:
             print(e)
-            print('error in raw_Calendar_decode')
+            print('error in raw_calendar_decode')
         if data != None:
-            self.Speculate_calendar(data, tw_year=term_year)
+            self.speculate_calendar(data, tw_year=term_year)
 
-    def raw_Calendar_decode(self, file):
-        '''file = xxx.pdf  '''
+    def raw_calendar_decode(self, file):
+        """input a pdf file, and use regex simply split.
+
+        Args:
+            file (str): path, e.g. "1.pdf", "/var/www/wow/1.pdf"
+
+        Returns:
+            [dict]: {
+                data:[list]
+            }
+        # Why not return list ?
+        # maybe in future, it will add more information.
+        """
         process = subprocess.Popen(
             ['pdf2txt.py', file], stdout=subprocess.PIPE)
         raw_pdf_text, err = process.communicate()
@@ -52,19 +63,24 @@ class NKUST_Calendar:
                 for k, v in replace_dict.items():
                     if i.find(k) > -1:
                         break
-                # print(v,i[i.find('(')::])
+
                 res['data'].append({'office': v, 'info': i[i.find('(')::]})
 
         return res
 
     def json_make(self, date, info, office):
-        'date type : datetime'
+        """Convert date to weeks , self.week_start_days can't be None 
+
+        Args:
+            date (datetime.datetime): date form the raw info , use regex to split. 
+            info (str): events info.
+            office (str): form whitch office.
+        """
         week = 0
-        if self.week_startDays != None:
-            week = int(((date-self.week_startDays).days)/7)+1
+        if self.week_start_days != None:
+            week = int(((date-self.week_start_days).days)/7)+1
 
         if week > 18:  # will next term
-            #self.week_startDays = None
             if date.month == 1:
                 week = '寒'
             elif date.month == 7 or date.month == 6:
@@ -87,6 +103,11 @@ class NKUST_Calendar:
             self.res[str(week)] = {'events': [info]}
 
     def get_json(self):
+        """get json , It will return json format for App ver.3.0.0 or higher
+
+        Returns:
+            str : json format.
+        """
         replace_char = {
             '0': '不可能出現的周，出現表示該修了QQ',
             '1': '第一週',
@@ -120,14 +141,15 @@ class NKUST_Calendar:
             res_json.append(tmp)
         return json.dumps(res_json, ensure_ascii=False)
 
-    def Speculate_calendar(self, data, tw_year=(datetime.now().year-1911)):
-        '''data = raw_Calender_decode type: dict
-        { data:[ {'office':...,'info':....}  ...   ]   }   
-        tw_year  hmmm 106 107.. 
-        '''
+    def speculate_calendar(self, data, tw_year=(datetime.now().year-1911)):
+        """do more regex, and find the school start day.
 
+        Args:
+            data ([dict]): from raw_calendar_decode return value.
+            tw_year (int): since KMT lose their "China", come to Taiwan's year. :P
+                           now.year - 1911 you will get this value. 
+        """
         # same_year_list = ['8','9','10','11','12']  #these months are in the same term years
-
         next_year_list = ['1', '2', '3', '4', '5', '6', '7']  # year +1
         for i in data['data']:
             year = tw_year+1911
@@ -145,12 +167,13 @@ class NKUST_Calendar:
 
                 if i['info'].find('開始上課') > -1:
                     diff = timedelta(days=day.isoweekday())
-                    self.week_startDays = day-diff
+                    self.week_start_days = day-diff
                 info = info.replace('-', ' ~ ')
+
                 self.json_make(date=day, info=info, office=i['office'])
 
 
 if __name__ == "__main__":
 
-    data = NKUST_Calendar('cal107-1.pdf', term_year=107).get_json()
+    data = NKUST_Calendar('cal108-1.pdf', term_year=108).get_json()
     print(data)
