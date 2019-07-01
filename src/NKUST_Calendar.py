@@ -165,7 +165,7 @@ class NKUST_Calendar:
                 day = datetime.strptime(
                     '%s %s' % (year, date_info), '%Y %m/%d')
 
-                if i['info'].find('開始上課') > -1:
+                if i['info'].find('開始上課') > -1 or i['info'].find('開學日') > -1:
                     diff = timedelta(days=day.isoweekday())
                     self.week_start_days = day-diff
                 info = info.replace('-', ' ~ ')
