@@ -1,8 +1,9 @@
-import subprocess
 import json
 import re
-from datetime import datetime
-from datetime import timedelta
+import subprocess
+import sys
+from datetime import datetime, timedelta
+
 '''
 PDF parser tool.
 
@@ -174,6 +175,15 @@ class NKUST_Calendar:
 
 
 if __name__ == "__main__":
+    try:
+        input_file = sys.argv[1]
+        term_year = sys.argv[2]
+    except:
+        input_file = input('file path : ')
+        term_year = input('term year (e.g. 107, 108 ) : ')
 
-    data = NKUST_Calendar('cal108-1.pdf', term_year=108).get_json()
-    print(data)
+    data = NKUST_Calendar(input_file, term_year=int(term_year)).get_json()
+    print(data, '\n')
+    if input('save file ? (y/n) ') == 'y':
+        with open(str(datetime.now())+'.json', 'w') as wr:
+            wr.write(data)
